@@ -62,7 +62,7 @@ Essentially the application works by passing around _References_, which are simp
 within that page: whenever we encounter a link, a _Reference_ is generated which may need to be followed. We have a number of types of actors 
 who handle various roles in the processing, and the interactions between these actors is best shown in a diagram thus:
 
-![diagram](raw/master/doc/actors.png)
+![diagram](spider/raw/master/doc/actors.png)
 
 The actors' responsibilities are as follows:
 
