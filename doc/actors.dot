@@ -1,0 +1,25 @@
+
+// This is a Graphviz document, see: http://www.graphviz.org/
+
+digraph Spider_Actors {
+	rankdir=TB;
+	size="8,5"
+	node [shape = doublecircle]; start;
+	node [shape = circle];
+	start -> referenceActor [ label = "( ,uri)" ];
+	referenceActor [ label = "referenceActor\n(manages References)"]
+	referenceActor -> targetActor [ label = "Reference\n(new)" ];
+	referenceActor -> stop [ label = "done" ];
+	targetActor [ label = "targetActor\n(manages links processed)"];
+	targetActor -> referenceActor [ label = "Reference\n(previously seen)" ];
+	targetActor -> queuedActor [ label = "Reference\n(not previously seen)" ];
+	queuedActor [ label = "queuedActor\n(manages pool of readerActors)"];
+	queuedActor -> readerActor [ label = "Reference" ];
+	readerActor [ label = "readerActor\n(1 of N, does web page fetch and analysis)"];
+	readerActor -> queuedActor [ label = "self\n(completed)" ];
+	readerActor -> successActor [ label = "(Reference, HTMLReaderResult)" ];
+	readerActor -> failureActor [ label = "Reference" ]; 
+	successActor -> referenceActor [ label = "Seq((uri, link))" ];
+	successActor -> referenceActor [ label = "Reference\n(completed)" ];
+	failureActor -> referenceActor [ label = "Reference\n(completed)" ];
+}

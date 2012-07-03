@@ -1,0 +1,4 @@
+.cache
+.scala_dependencies
+.settings
+target
