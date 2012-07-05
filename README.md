@@ -2,9 +2,10 @@
 
 ## Overview
 
-This provides a simple web spider written in Scala. Its primary purpose is to traverse a website looking for broken internal or external links,
-which it will report at the end of processing. However, it has been designed so it can be extended and repurposed for related applications
-as required. 
+This project is an implementation of a basic web spider in Scala, and it demonstrates the use of Actors in particular.
+The application's primary purpose is to traverse a website looking for broken internal or external links,
+which it will report at the end of processing.
+However, it has been designed so it can be extended and repurposed for related applications as required. 
 
 ## Getting Started
 
@@ -16,12 +17,18 @@ as required.
 - Activate the context menu (right-mouse button) on the _Git Repositories_ view and paste in the clipboard URL to start the EGit wizard
 - Accept the default values in the subsequent _Source Git Repository_ and _Branch Selection_ dialogs
 - In the final _Local Destination_ dialog, select an appropriate local directory using the _Browse_ button, then click _Finish_
+- Activate the context menu on the new local repository view entry, and select _Import Projects..._
+- Accept the defaults in the import wizard dialogs by clicking click _Next_ and _Finish_
+- The newly imported project should now automatically build, firstly downloading the necessary dependencies then compiling the source code
+- It is also useful to have a Maven run configuration to build the project, as follows:
 - Activate the context menu on the newly imported project, then select _Run As_ &rarr; _Run Configurations..._ &rarr; _Maven Build_ &rarr; _New_
 - Name the configuration **spider build** and set the goals as **clean verify scala:doc**, and in the _Refresh_ tab tick the resources checkbox 
 - Run the new configuration to build the application; the project should auto-build from now on
 - To run the application, similarly do context menu _Run As_ &rarr; _Run Configurations..._ &rarr; _Scala Application_ &rarr; _New_
 - Name the new configuration **spider run** and set the main class as **web.satyagraha.spider.app.SpiderApp**; in the _Arguments_ tab,
-add command line options (see below) and a URL for the web site to be scanned  
+add command line options (see below) and a URL for the web site to be scanned
+- If you wish to investigate the codebase further, you will find it useful to expand the _Maven Dependencies_ folder, select one or more jars, then
+activate the context menu and select _Maven_ &rarr; _Download JavaDoc_ (and _Sources_ too if required) - this will provide better context help
 
 ### Non-Eclipse Users
 
@@ -34,6 +41,7 @@ add command line options (see below) and a URL for the web site to be scanned
 ### Command Line Invocation
 
 When successfully built, the executable may be invoked in a stand-alone way via the command:
+
 `java -jar target/spider-1.0-SNAPSHOT-jar-with-dependencies.jar [options] url`
 
 The available options are:
@@ -55,6 +63,7 @@ The codebase uses the following key components:
 - The [SubCut](https://github.com/dickwall/subcut) dependency injection framework
 - The [Dispatch](http://dispatch.databinder.net/Dispatch.html) web framework
 - The [Lift Actors](http://liftweb.net/) framework
+- The [Grizzled](http://software.clapper.org/grizzled-slf4j/), [SLF4J](http://slf4j.org/), and [Logback](http://logback.qos.ch/) logging stack
 
 ### Principles of Operation
 
@@ -79,11 +88,14 @@ The application's scaladoc will be found in `target/site/scaladocs` on completio
 
 ### Notes
 
-- This application does not honour the [robots.txt](http://www.robotstxt.org/) convention for spiders, and thus can generate 
-potentially a high load on a website by traversing all its pages. This is particularly true if you set a high value for the
+- This application does not honour the [robots.txt](http://www.robotstxt.org/) convention for spiders, and thus potentially can generate 
+a high load on a website by traversing all its pages. This is particularly true if you set a high value for the
 `--readers` option. High loads can be unpopular and might lead to claims of Denial of Service or result in IP blocking, so
 be warned. The workload generated could in principle be throttled by restricting the number of readers and/or introducing
-a sleep period between HTTP requests.
+a sleep period between HTTP requests. On the other hand, if you do actually want a load generation tool, this could be one approach.
+
+- The application does not attempt to fetch references defined in the HEAD section of a HTML document, e.g. CSS and JavaScript files;
+however, this should be a straight-forward extension if required.
 
 - Websites providing open-ended dynamic content links, like calendars in particular, may well result in non-termination
 of the application. Adding some kind of pattern match exclusion when determining whether links should be followed would
