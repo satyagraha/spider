@@ -4,6 +4,11 @@ import dispatch._
 import grizzled.slf4j.Logger
 import org.scala_tools.subcut.inject.Injectable
 import org.scala_tools.subcut.inject.BindingModule
+import java.io.InputStream
+import org.apache.commons.io.IOUtils
+import java.nio.charset.Charset
+import java.nio.ByteBuffer
+import java.nio.charset.MalformedInputException
 
 /**
  * Provide container for web reader results.
@@ -36,17 +41,50 @@ class HTMLReaderExecutor extends Http with thread.Safety with HttpExecutor with 
   val logger = Logger(getClass)
 
   /**
-   * Retrieve the url using provided headers.
+   * Convert an input stream to string.
+   * 
+   * @param stream
+   * @param charsetNames
+   * @return
+   */
+  def tryConvert(stream: InputStream, charsetNames: String*): String = {
+    val bytes = IOUtils.toByteArray(stream)
+    println("got bytes: " + bytes.length)
+    charsetNames foreach { charsetName =>
+      try {
+        val decoder = Charset.forName(charsetName).newDecoder
+        return decoder.decode(ByteBuffer.wrap(bytes)).toString
+      } catch {
+        case e: MalformedInputException =>
+      }
+    }
+    throw new MalformedInputException(0)
+  }
+
+  /**
+   * Create a request using the providing url and headers.
    *
    * @param uri
    * @param requestHeaders
    * @return
    */
+  def buildRequest(uri: String, requestHeaders: Map[String, String]): Request = {
+    require(uri != null)
+    require(requestHeaders != null)
 
-  def fetch(uri: String, requestHeaders: Map[String, String]) = {
-    val request: Request = new Request(uri) <:< requestHeaders
-    apply(request >+ { req => (req >:> { map => map }, req >- { str => str }) })
+    return new Request(uri) <:< requestHeaders
   }
+
+  /**
+   * Execute a request.
+   *
+   * @param request
+   * @return
+   */
+  def fetchRequest(request: Request) = {
+    apply(request >+ { req => (req >:> { map => map }, req >> { (stm, charset) => tryConvert(stm, charset, "latin1") }) })
+  }
+
 }
 
 /**
@@ -55,11 +93,13 @@ class HTMLReaderExecutor extends Http with thread.Safety with HttpExecutor with 
 
 class HTMLReader(implicit val bindingModule: BindingModule) extends Injectable {
 
+  val logger = Logger(getClass)
+
   private val executor = inject[HTMLReaderExecutor]
 
   /**
    * Perform HTTP GET to retrieve web page.
-   * 
+   *
    * @param uri
    * @param requestHeaders
    * @return
@@ -68,9 +108,11 @@ class HTMLReader(implicit val bindingModule: BindingModule) extends Injectable {
   def doGET(uri: String, requestHeaders: Map[String, String]): Either[Exception, HTMLReaderResult] = {
     require(uri != null)
     require(requestHeaders != null)
+    logger.debug("requestHeaders: " + requestHeaders)
 
     val result = try {
-      val (responseHeaders, body) = executor.fetch(uri, requestHeaders)
+      val request = executor.buildRequest(uri, requestHeaders)
+      val (responseHeaders, body) = executor.fetchRequest(request)
       Right(new HTMLReaderResult(responseHeaders, body))
     } catch {
       case e: Exception => {

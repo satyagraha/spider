@@ -1,19 +1,20 @@
 package web.satyagraha.spider.core
 
 import org.junit.runner.RunWith
-import org.scalatest.FunSpec
-import org.scalatest.junit.JUnitRunner
+import org.mockito.Matchers.{eq => the}
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoMoreInteractions
+import org.mockito.Mockito.when
 import org.scala_tools.subcut.inject.BindingModule
 import org.scala_tools.subcut.inject.Injectable
-import org.scalatest.matchers.ShouldMatchers
-import web.satyagraha.spider.Bindings
 import org.scala_tools.subcut.inject.NewBindingModule
-import org.scalatest.BeforeAndAfter
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
-import org.mockito.Matchers.{eq => the, any}
-import dispatch.Handler
-import java.net.UnknownHostException
+import org.scalatest.BeforeAndAfter
+import org.scalatest.FunSpec
+
+import dispatch.Request
 
 @RunWith(classOf[JUnitRunner])
 class HTMLReaderTest extends FunSpec with BeforeAndAfter with ShouldMatchers /*with MockitoSugar*/ with Injectable {
@@ -60,9 +61,12 @@ class HTMLReaderTest extends FunSpec with BeforeAndAfter with ShouldMatchers /*w
       val requestHeaders = Map("session" -> "12345")
       val content = "<html>Hi!</html>"
       val responseHeaders = Map("info" -> Set("a", "b"))
-      when(htmlReaderExecutor.fetch(uri, requestHeaders)).thenReturn((responseHeaders, content))
+      val request = MockitoSugar.mock[Request]
+      when(htmlReaderExecutor.buildRequest(uri, requestHeaders)).thenReturn(request)
+      when(htmlReaderExecutor.fetchRequest(request)).thenReturn((responseHeaders, content))
       val result = htmlReader.doGET(uri, requestHeaders)
-      verify(htmlReaderExecutor).fetch(the(uri), the(requestHeaders))
+      verify(htmlReaderExecutor).buildRequest(the(uri), the(requestHeaders))
+      verify(htmlReaderExecutor).fetchRequest(the(request))
       verifyNoMoreInteractions(htmlReaderExecutor)
       result should be (Right(HTMLReaderResult(responseHeaders, content)))
     }
@@ -70,15 +74,19 @@ class HTMLReaderTest extends FunSpec with BeforeAndAfter with ShouldMatchers /*w
     it("should fetch the uri passing the cookies and return a failure response") {
       val uri = "http://www.abc.com"
       val requestHeaders = Map("session" -> "12345")
+      val request = MockitoSugar.mock[Request]
       val content = "<html>Hi!</html>"
       val responseHeaders = Map("info" -> Set("a", "b"))
+      when(htmlReaderExecutor.buildRequest(uri, requestHeaders)).thenReturn(request)
       val exception = new RuntimeException
-      when(htmlReaderExecutor.fetch(uri, requestHeaders)).thenThrow(exception)
+      when(htmlReaderExecutor.fetchRequest(request)).thenThrow(exception)
       val result = htmlReader.doGET(uri, requestHeaders)
-      verify(htmlReaderExecutor).fetch(the(uri), the(requestHeaders))
+      verify(htmlReaderExecutor).buildRequest(the(uri), the(requestHeaders))
+      verify(htmlReaderExecutor).fetchRequest(the(request))
       verifyNoMoreInteractions(htmlReaderExecutor)
       result should be (Left(exception))
     }
+    
   }
   
 }
